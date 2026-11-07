@@ -1,5 +1,7 @@
 <h1 align="center"><img src="docs/screenshots/claudemods_icon.png" alt="Claude Mods" width="36" height="36" valign="middle"> Claude Mods</h1>
 
+> Cópia privada de [Jhonatan-de-Souza/ClaudeMods](https://github.com/Jhonatan-de-Souza/ClaudeMods), mantida por Matheus Dezan. O código original é de Jhonatan de Souza (sem licença publicada: uso pessoal). Alterações desta cópia estão no [CHANGELOG](CHANGELOG.md).
+
 <p align="center">Uma barra lateral para o <a href="https://claude.com/claude-code">Claude Code</a>: modo Zen, temas, modelo e esforço, e uma linha de status.</p>
 
 <p align="center"><a href="README.md">English</a> · <b>Português</b></p>
@@ -61,13 +63,13 @@ A barra lateral fala English e Português. Teclas: **Tab** move, **Enter** escol
 Precisa do Claude Code 2.1.292 ou mais novo.
 
 ```
-claude plugin marketplace add Jhonatan-de-Souza/ClaudeMods
-claude plugin install extra-mods@jdsjh-mods --scope user
+claude plugin marketplace add matheus-dezan/claude-mods
+claude plugin install extra-mods@dezan-mods --scope user
 ```
 
 Rode `/reload-plugins` (ou abra uma nova sessão) e clique em **◆ extra-mods ▲** no canto inferior direito, ou digite `/tools`.
 
-Para atualizar: `claude plugin marketplace update jdsjh-mods && claude plugin update extra-mods@jdsjh-mods`
+Para atualizar: `claude plugin marketplace update dezan-mods && claude plugin update extra-mods@dezan-mods`
 
 <details>
 <summary><b>Bom saber</b></summary>
@@ -86,8 +88,8 @@ Para atualizar: `claude plugin marketplace update jdsjh-mods && claude plugin up
 Aponte seu agente para este repositório e peça para instalar o mod. Passos para o agente (pergunte ao usuário antes do passo 4):
 
 1. Rode `claude --version`; precisa ser 2.1.292 ou maior.
-2. Rode `claude plugin marketplace add Jhonatan-de-Souza/ClaudeMods`.
-3. Rode `claude plugin install extra-mods@jdsjh-mods --scope user`.
+2. Rode `claude plugin marketplace add matheus-dezan/claude-mods`.
+3. Rode `claude plugin install extra-mods@dezan-mods --scope user`.
 4. *Opcional, só se o usuário não quiser a linha de status do mod:* copie `statusline/statusline.py` para `~/.claude/statusline.py` e defina `"statusLine": { "type": "command", "command": "python ~/.claude/statusline.py", "refreshInterval": 2 }` no `~/.claude/settings.json` (`python3` no macOS e Linux).
 5. Confira se `claude plugin list` mostra o `extra-mods` ativado e peça ao usuário para rodar `/reload-plugins`.
 

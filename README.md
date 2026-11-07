@@ -1,5 +1,7 @@
 <h1 align="center"><img src="docs/screenshots/claudemods_icon.png" alt="Claude Mods" width="36" height="36" valign="middle"> Claude Mods</h1>
 
+> Private copy of [Jhonatan-de-Souza/ClaudeMods](https://github.com/Jhonatan-de-Souza/ClaudeMods), kept by Matheus Dezan. Original code by Jhonatan de Souza (no license published: personal use). Changes in this copy are in the [CHANGELOG](CHANGELOG.md).
+
 <p align="center">A sidebar for <a href="https://claude.com/claude-code">Claude Code</a>: Zen mode, themes, model and effort, and a status line.</p>
 
 <p align="center"><b>English</b> · <a href="README.pt-BR.md">Português</a></p>
@@ -61,13 +63,13 @@ The sidebar speaks English and Português. Keys: **Tab** moves, **Enter** select
 Needs Claude Code 2.1.292 or newer.
 
 ```
-claude plugin marketplace add Jhonatan-de-Souza/ClaudeMods
-claude plugin install extra-mods@jdsjh-mods --scope user
+claude plugin marketplace add matheus-dezan/claude-mods
+claude plugin install extra-mods@dezan-mods --scope user
 ```
 
 Run `/reload-plugins` (or start a new session), then click **◆ extra-mods ▲** at the bottom right, or type `/tools`.
 
-To update: `claude plugin marketplace update jdsjh-mods && claude plugin update extra-mods@jdsjh-mods`
+To update: `claude plugin marketplace update dezan-mods && claude plugin update extra-mods@dezan-mods`
 
 <details>
 <summary><b>Good to know</b></summary>
@@ -86,8 +88,8 @@ To update: `claude plugin marketplace update jdsjh-mods && claude plugin update 
 Point your coding agent at this repository and ask it to install the mod. Steps for the agent (ask the user before step 4):
 
 1. Run `claude --version`; it must be 2.1.292 or higher.
-2. Run `claude plugin marketplace add Jhonatan-de-Souza/ClaudeMods`.
-3. Run `claude plugin install extra-mods@jdsjh-mods --scope user`.
+2. Run `claude plugin marketplace add matheus-dezan/claude-mods`.
+3. Run `claude plugin install extra-mods@dezan-mods --scope user`.
 4. *Optional, only if the user doesn't want the mod's status line:* copy `statusline/statusline.py` to `~/.claude/statusline.py` and set `"statusLine": { "type": "command", "command": "python ~/.claude/statusline.py", "refreshInterval": 2 }` in `~/.claude/settings.json` (`python3` on macOS and Linux).
 5. Check `claude plugin list` shows `extra-mods` enabled, then tell the user to run `/reload-plugins`.
 

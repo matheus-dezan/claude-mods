@@ -71,6 +71,21 @@ export const isLight = (color: string): boolean => {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b > 140
 }
 
+const luma = (c: string) => {
+  const [r, g, b] = rgb(c)
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+// A theme's "bright black" is its gray, but some themes (Tender) make it darker
+// than the background: then dim text vanishes. Fall back to a mid gray.
+export const readableGray = (bg: string, fg: string, candidate: string | undefined): string => {
+  const mid = mix(bg, fg, 0.5)
+  if (candidate === undefined) return mid
+  const span = Math.abs(luma(fg) - luma(bg))
+  const away = (luma(candidate) - luma(bg)) * Math.sign(luma(fg) - luma(bg))
+  return away >= span * 0.3 ? candidate : mid
+}
+
 export type ClaudeTheme = { name: string; base: 'dark' | 'light'; overrides: Record<string, string> }
 
 // A Claude Code custom theme (~/.claude/themes/<slug>.json) in the palette's
@@ -82,7 +97,8 @@ export const toClaudeTheme = (p: Palette): ClaudeTheme => {
   const fg = p.foreground
   const bg = p.background
   const [, red = fg, green = fg, yellow = fg, blue = fg, magenta = fg, cyan = fg] = p.normal
-  const [gray = mix(bg, fg, 0.5), redB = red, greenB = green, yellowB = yellow, blueB = blue, magentaB = magenta] = p.bright
+  const [brightBlack, redB = red, greenB = green, yellowB = yellow, blueB = blue, magentaB = magenta] = p.bright
+  const gray = readableGray(bg, fg, brightBlack)
   const orange = mix(red, yellow, 0.5)
   const indigo = mix(blue, magenta, 0.5)
   // The lighter (dark themes) or darker (light themes) twin an animation pulses to.
@@ -235,12 +251,13 @@ export const toWtScheme = (p: Palette): Record<string, string> => {
     background: p.background,
     foreground: p.foreground,
     cursorColor: p.cursor,
-    selectionBackground: p.bright[0] ?? p.foreground,
+    selectionBackground: mix(p.background, p.foreground, 0.3),
   }
   names.forEach((n, i) => {
     scheme[n] = p.normal[i] ?? p.foreground
     scheme[`bright${n.charAt(0).toUpperCase()}${n.slice(1)}`] = p.bright[i] ?? p.foreground
   })
+  scheme.brightBlack = readableGray(p.background, p.foreground, p.bright[0])
   return scheme
 }
 

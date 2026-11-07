@@ -1,6 +1,8 @@
 {
-  "name": "jdsjh-mods",
-  "owner": { "name": "Jhonatan de Souza" },
+  "name": "dezan-mods",
+  "owner": {
+    "name": "Matheus Dezan"
+  },
   "plugins": [
     {
       "name": "extra-mods",
