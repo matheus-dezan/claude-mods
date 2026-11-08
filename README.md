@@ -71,6 +71,10 @@ Run `/reload-plugins` (or start a new session), then click **◆ extra-mods ▲*
 
 To update: `claude plugin marketplace update dezan-mods && claude plugin update extra-mods@dezan-mods`
 
+### Other mods in this marketplace
+
+- **[agent-view](plugins/agent-view/README.md)**: a pane with the session's subagents and teammates as a tree (README in Portuguese). `claude plugin install agent-view@dezan-mods --scope user`
+
 <details>
 <summary><b>Good to know</b></summary>
 

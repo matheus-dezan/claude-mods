@@ -1,0 +1,7 @@
+{
+  "name": "agent-view",
+  "version": "0.1.0",
+  "author": { "name": "Matheus Dezan" },
+  "description": "Painel lateral com a árvore de subagentes e teammates da sessão: status, tempo, ferramentas e clique para abrir a transcrição.",
+  "types": "./types/index.d.ts"
+}

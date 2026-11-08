@@ -8,6 +8,11 @@
       "name": "extra-mods",
       "source": "./plugins/extra-mods",
       "description": "extra-mods menu: Zen mode, Claude Code themes, effort and mode controls, status line."
+    },
+    {
+      "name": "agent-view",
+      "source": "./plugins/agent-view",
+      "description": "Painel com a árvore de subagentes e teammates da sessão: status, tempo, ferramentas e clique para abrir a transcrição."
     }
   ]
 }
