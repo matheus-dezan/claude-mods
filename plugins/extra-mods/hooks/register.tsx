@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderChildren, RenderInput, Timer } from 'claude-code'
 
-import type { Effort, Lang, Panel, RateLimit, StatusSnapshot, ThemeEntry, ZenColors, ZenStep, ZenStyle, ZenTask, ZenTheme } from '../types'
+import type { Effort, Lang, ModEntry, Panel, RateLimit, StatusSnapshot, ThemeEntry, ZenColors, ZenStep, ZenStyle, ZenTask, ZenTheme } from '../types'
 import { EFFORT_HEAT, EFFORTS, type Mode, MODELS, MODES, modeLabel, modelFamily } from './lib/modes'
 import { isLang, LANGS, modeName, phrase, type Phrase } from './lib/i18n'
 import {
@@ -84,6 +84,7 @@ const status = atom({ plugin: 'extra-mods', key: 'status' } as const, null)
 const lastResponseAt = atom({ plugin: 'extra-mods', key: 'lastResponseAt' } as const, null)
 const lang = atom({ plugin: 'extra-mods', key: 'lang' } as const, 'en')
 const statusClock = atom({ plugin: 'extra-mods', key: 'statusClock' } as const, 0)
+const myMods = atom({ plugin: 'extra-mods', key: 'myMods' } as const, null)
 
 // The menu's pane: a sidebar in the fullscreen layout, a block above the prompt otherwise.
 // Claude's progress tool, as the model calls it.
@@ -93,7 +94,12 @@ const PANE = 'claude-tools'
 const PANE_SIZE = { rows: 26, columns: 56 }
 // Used until the terminal's own background is known: just short of pure black.
 const PANE_BACKGROUND = '#0b0b0b'
-const MENU_NAME = 'extra-mods'
+const MENU_NAME = 'mods'
+// The person's own marketplace: every mod it lists is theirs, and the Mods tab
+// lists each, with its commands. Mods in development under ~/.claude/dev-mods
+// join it while they are loaded.
+const MY_MARKETPLACE = 'dezan-mods'
+const SELF = 'extra-mods'
 // Room the engine's own mode label takes left of the hint row (⏵⏵ auto mode on · ).
 const MODE_LABEL_COLUMNS = 22
 // How far the stats row is pulled left so it starts under the mode label
@@ -136,6 +142,71 @@ const HEX = /^#[0-9a-f]{6}$/i
 async function homeDir($: EngineInterface) {
   const home = (await $.env.get('USERPROFILE')) ?? (await $.env.get('HOME')) ?? '.'
   return home.replaceAll('\\', '/')
+}
+
+async function readJson($: EngineInterface, path: string): Promise<unknown> {
+  try {
+    return JSON.parse(await $.fs.read(path)) as unknown
+  } catch {
+    return undefined
+  }
+}
+
+const asRecord = (v: unknown): Record<string, unknown> => (v !== null && typeof v === 'object' ? (v as Record<string, unknown>) : {})
+const asText = (v: unknown) => (typeof v === 'string' ? v : '')
+
+// The Mods tab's list: the mods the person's marketplace lists, then the mods
+// in development this session has loaded, each with the commands it registered.
+async function loadMyMods($: EngineInterface) {
+  const home = await homeDir($)
+  const found = new Map<string, { description: string; isListed: boolean }>()
+
+  const market = asRecord(await readJson($, `${home}/.claude/plugins/marketplaces/${MY_MARKETPLACE}/.claude-plugin/marketplace.json`))
+  for (const p of Array.isArray(market.plugins) ? market.plugins : []) {
+    const name = asText(asRecord(p).name)
+    if (name !== '') found.set(name, { description: asText(asRecord(p).description), isListed: true })
+  }
+
+  const devRoot = `${home}/.claude/dev-mods`
+  try {
+    for (const session of await $.fs.list(devRoot)) {
+      if (session.kind !== 'dir') continue
+      for (const dir of await $.fs.list(`${devRoot}/${session.name}`).catch(() => [])) {
+        if (dir.kind !== 'dir') continue
+        const manifest = asRecord(await readJson($, `${devRoot}/${session.name}/${dir.name}/.claude-plugin/plugin.json`))
+        const name = asText(manifest.name)
+        if (name !== '' && !found.has(name)) found.set(name, { description: asText(manifest.description), isListed: false })
+      }
+    }
+  } catch {}
+
+  found.delete(SELF)
+  const installed = asRecord(asRecord(await readJson($, `${home}/.claude/plugins/installed_plugins.json`)).plugins)
+  const commands = await $.command.list().catch(() => [])
+  const entries: ModEntry[] = []
+  for (const [name, { description, isListed }] of found) {
+    const own = commands.filter(c => c.plugin === name).map(c => ({ name: c.name, description: c.description }))
+    const isInstalled = `${name}@${MY_MARKETPLACE}` in installed
+    // A mod in development counts while it is loaded: it registered a command.
+    const state = isInstalled ? 'installed' : own.length > 0 ? 'dev' : 'missing'
+    if (!isListed && state === 'missing') continue
+    entries.push({ name, description, state, commands: own })
+  }
+  const rank = { installed: 0, dev: 1, missing: 2 } as const
+  entries.sort((a, b) => rank[a.state] - rank[b.state] || a.name.localeCompare(b.name))
+  await update($, myMods, () => entries)
+}
+
+// Runs one of the person's mods' commands, the menu closed first so what the
+// command opens (a pane, a dialog) takes the keys.
+async function runModCommand($: EngineInterface, command: string) {
+  await $.ui.close({ id: PANE }).catch(() => {})
+  await update($, menu, () => null)
+  try {
+    await $.command.run({ command, args: '' })
+  } catch (error) {
+    $.ui.toast(`/${command}: ${String(error)}`)
+  }
 }
 
 async function themesDir($: EngineInterface) {
@@ -739,6 +810,7 @@ async function drawZenBand($: EngineInterface, e: RenderInput<'AbovePrompt'>) {
 // Moves the menu to another tab.
 async function goTo($: EngineInterface, panel: Panel) {
   await update($, menu, () => panel)
+  if (panel === 'mods') void loadMyMods($).catch(() => {})
   if (panel === 'themes') {
     await revealKept($)
     void ensureThemes($)
@@ -746,7 +818,7 @@ async function goTo($: EngineInterface, panel: Panel) {
 }
 
 // Opens the menu in its pane with the keyboard, or closes it.
-async function toggleMenu($: EngineInterface, panel: Panel = 'zen') {
+async function toggleMenu($: EngineInterface, panel: Panel = 'mods') {
   if ((await read($, menu)) !== null) {
     // A plugin's own close skips its own ui.close hook, so reset here too.
     await $.ui.close({ id: PANE })
@@ -754,6 +826,7 @@ async function toggleMenu($: EngineInterface, panel: Panel = 'zen') {
     return
   }
   await update($, menu, () => panel)
+  if (panel === 'mods') void loadMyMods($).catch(() => {})
   if (panel === 'themes') {
     await revealKept($)
     void ensureThemes($)
@@ -794,6 +867,7 @@ async function setLang($: EngineInterface, next: Lang) {
 }
 
 const TABS: readonly { panel: Exclude<Panel, 'main'>; name: Phrase }[] = [
+  { panel: 'mods', name: 'tabMods' },
   { panel: 'zen', name: 'tabZen' },
   { panel: 'themes', name: 'tabThemes' },
   { panel: 'mode', name: 'tabMode' },
@@ -808,7 +882,7 @@ const rainbow = (text: string) => [...text].map((ch, i) => ({ ch, color: RAINBOW
 async function drawPane($: EngineInterface, e: RenderInput<'Pane'>, panel: Panel) {
   if (e.surface !== 'terminal' && e.surface !== 'desktop') return null
   const { Box, Text, Button, Input } = $.ui.resolve(e)
-  const tab: Exclude<Panel, 'main'> = panel === 'main' ? 'zen' : panel
+  const tab: Exclude<Panel, 'main'> = panel === 'main' ? 'mods' : panel
   const lng = await read($, lang)
   const t = (key: Phrase, vars?: Record<string, string | number>) => phrase(lng, key, vars)
   const background = (await read($, paneBg)) ?? PANE_BACKGROUND
@@ -855,6 +929,49 @@ async function drawPane($: EngineInterface, e: RenderInput<'Pane'>, panel: Panel
   )
 
   const rows: RenderChildren[] = []
+
+  if (tab === 'mods') {
+    const list = await read($, myMods)
+    rows.push(
+      heading(t('modsHeading'), <Button key="mods-refresh" plain dimColor label={t('modsRefresh')} onPress={() => loadMyMods($)} />),
+    )
+    if (list === null) rows.push(<Text key="mods-wait" dimColor>{t('modsLoading')}</Text>)
+    else if (list.length === 0) rows.push(<Text key="mods-none" dimColor>{t('modsNone')}</Text>)
+    for (const mod of list ?? []) {
+      const stateColor = mod.state === 'installed' ? 'success' : mod.state === 'dev' ? 'warning' : undefined
+      const stateText = t(mod.state === 'installed' ? 'modsInstalled' : mod.state === 'dev' ? 'modsDev' : 'modsMissing')
+      rows.push(
+        <Box key={`mod-${mod.name}`} flexDirection="column" marginTop={1}>
+          <Text wrap="truncate">
+            <Text bold color={mod.state === 'missing' ? undefined : 'claude'} dimColor={mod.state === 'missing'}>
+              {mod.name}
+            </Text>
+            <Text dimColor> · </Text>
+            <Text color={stateColor} dimColor={stateColor === undefined}>
+              {stateText}
+            </Text>
+          </Text>
+          {mod.description !== '' && (
+            <Text dimColor wrap="truncate">
+              {mod.description}
+            </Text>
+          )}
+          {mod.state === 'missing' ? (
+            <Text dimColor wrap="truncate">
+              {t('modsInstall', { name: mod.name, market: MY_MARKETPLACE })}
+            </Text>
+          ) : mod.commands.length === 0 ? (
+            <Text dimColor>{t('modsNoCommand')}</Text>
+          ) : (
+            chips(
+              `mod-cmds-${mod.name}`,
+              mod.commands.map(c => chip(`mod-cmd-${c.name}`, `/${c.name}`, false, () => runModCommand($, c.name))),
+            )
+          )}
+        </Box>,
+      )
+    }
+  }
 
   if (tab === 'zen') {
     const isZenOn = await read($, zenOn)
@@ -1399,10 +1516,13 @@ export const register: Register = on => {
     } catch {}
     await $.command.register({
       name: 'tools',
-      description: 'Open the extra-mods menu: Zen mode, themes, mode and status line',
-      argumentHint: '[zen|themes|mode|status|debug]',
+      description: 'Open the mods menu: your mods, Zen mode, themes, mode and status line',
+      argumentHint: '[mods|zen|themes|mode|status|debug]',
       immediate: true,
     })
+    try {
+      await $.command.register({ name: 'mods', description: 'Open the mods menu on your mods', immediate: true })
+    } catch {}
     return started
   })
 
@@ -1412,10 +1532,16 @@ export const register: Register = on => {
       const rows = await $.config.list()
       return { text: rows.map(r => `${r.key} (${r.kind}) = ${JSON.stringify(r.value)}`).join('\n') }
     }
-    const panel: Panel = arg === 'themes' || arg === 'mode' || arg === 'status' ? arg : 'zen'
+    const panel: Panel = arg === 'zen' || arg === 'themes' || arg === 'mode' || arg === 'status' ? arg : 'mods'
     if ((await read($, menu)) !== null) await goTo($, panel)
     else await toggleMenu($, panel)
-    return { text: 'extra-mods is open.' }
+    return { text: 'mods is open.' }
+  })
+
+  on('command.run', { command: 'mods' }, async $ => {
+    if ((await read($, menu)) !== null) await goTo($, 'mods')
+    else await toggleMenu($, 'mods')
+    return { text: 'mods is open.' }
   })
 
   // The menu's pane.

@@ -8,6 +8,16 @@ export const LANGS: readonly { lang: Lang; label: string }[] = [
 ]
 
 const EN = {
+  tabMods: 'Mods',
+  modsHeading: 'Your mods',
+  modsLoading: 'Looking for your mods…',
+  modsNone: 'No mod of yours was found.',
+  modsInstalled: 'installed',
+  modsDev: 'in development',
+  modsMissing: 'not installed',
+  modsInstall: 'install: claude plugin install {name}@{market}',
+  modsNoCommand: 'no command; it works on its own',
+  modsRefresh: '↻ Refresh',
   tabZen: 'Zen',
   tabThemes: 'Theme',
   tabMode: 'Mode',
@@ -54,6 +64,16 @@ const EN = {
 export type Phrase = keyof typeof EN
 
 const PT: Record<Phrase, string> = {
+  tabMods: 'Mods',
+  modsHeading: 'Seus mods',
+  modsLoading: 'Procurando seus mods…',
+  modsNone: 'Nenhum mod seu foi encontrado.',
+  modsInstalled: 'instalado',
+  modsDev: 'em desenvolvimento',
+  modsMissing: 'não instalado',
+  modsInstall: 'instalar: claude plugin install {name}@{market}',
+  modsNoCommand: 'sem comando; funciona sozinho',
+  modsRefresh: '↻ Atualizar',
   tabZen: 'Zen',
   tabThemes: 'Tema',
   tabMode: 'Modo',

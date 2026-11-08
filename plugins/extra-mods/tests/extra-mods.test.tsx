@@ -242,12 +242,12 @@ describe('toolbox', () => {
     for (const surface of SURFACES) {
       const corner = await $.ui.mount({ plugin: PLUGIN, surface, ...hint })
       const menu = await $.ui.mount({ plugin: PLUGIN, surface, ...pane })
-      expect((await corner.find({ key: 'tools-toggle' }))?.text).toMatch(/extra-mods ▲/)
+      expect((await corner.find({ key: 'tools-toggle' }))?.text).toMatch(/mods ▲/)
       expect(await menu.find({ key: 'tab-zen' })).toBeUndefined()
 
       await corner.press({ key: 'tools-toggle' })
       expect((await corner.find({ key: 'tools-toggle' }))?.text).toMatch(/▼/)
-      for (const key of ['tab-zen', 'tab-themes', 'tab-mode', 'tab-status', 'tools-close', 'lang-pt']) {
+      for (const key of ['tab-mods', 'tab-zen', 'tab-themes', 'tab-mode', 'tab-status', 'tools-close', 'lang-pt']) {
         expect(await menu.find({ key })).toBeDefined()
       }
       await corner.press({ key: 'tools-toggle' })
@@ -262,6 +262,7 @@ describe('toolbox', () => {
     const corner = await $.ui.mount({ plugin: PLUGIN, surface, ...hint })
     const menu = await $.ui.mount({ plugin: PLUGIN, surface, ...pane })
     await corner.press({ key: 'tools-toggle' })
+    await menu.press({ key: 'tab-zen' })
     await menu.press({ key: 'zen-on' })
     await menu.press({ key: 'zen-theme-rainbow' })
     expect(await isChosen(menu, 'zen-on')).toBe(true)
@@ -370,11 +371,13 @@ describe('toolbox', () => {
     const menu = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', ...pane })
     const corner = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', ...hint })
     await corner.press({ key: 'tools-toggle' })
+    await menu.press({ key: 'tab-zen' })
     expect(await isChosen(menu, 'zen-off')).toBe(true)
 
     await $.classic.SessionStart({ source: 'clear' })
     expect(closed).toEqual(['claude-tools'])
     await corner.press({ key: 'tools-toggle' })
+    await menu.press({ key: 'tab-zen' })
     expect(await isChosen(menu, 'zen-on')).toBe(true)
     expect((await menu.find({ key: 'zen-theme-rainbow' }))?.text).toMatch(/rainbow ✓/)
     expect(await isChosen(menu, 'zen-style-classic')).toBe(true)
@@ -388,6 +391,7 @@ describe('toolbox', () => {
     const menu = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', ...pane })
     const corner = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', ...hint })
     await corner.press({ key: 'tools-toggle' })
+    await menu.press({ key: 'tab-zen' })
     expect((await menu.find({ key: 'zen-on' }))?.text).toMatch(/On/)
     await menu.press({ key: 'lang-pt' })
     expect((await menu.find({ key: 'tab-themes' }))?.text).toMatch(/Tema/)
@@ -441,6 +445,7 @@ describe('toolbox', () => {
     const menu = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', ...pane })
     const progress = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', ...band() })
     await corner.press({ key: 'tools-toggle' })
+    await menu.press({ key: 'tab-zen' })
     await menu.press({ key: 'zen-on' })
 
     await $.tool.call({
@@ -457,5 +462,61 @@ describe('toolbox', () => {
     expect(await progress.find({ text: /50%/ })).toBeDefined()
     expect(await progress.find({ text: /Step 2 of 4/ })).toBeDefined()
     expect(await progress.find({ text: /Fetch data/ })).toBeDefined()
+  })
+  test('the Mods tab lists your mods with their commands and runs one', async ($, on) => {
+    engineDraws(on)
+    on('env.get', () => ({ value: '/home/me' }))
+    const files: Record<string, string> = {
+      '/home/me/.claude/plugins/marketplaces/dezan-mods/.claude-plugin/marketplace.json': JSON.stringify({
+        plugins: [
+          { name: 'extra-mods', description: 'this menu' },
+          { name: 'agent-view', description: 'Painel de subagentes' },
+          { name: 'outro-mod', description: 'Ainda nao instalado' },
+        ],
+      }),
+      '/home/me/.claude/plugins/installed_plugins.json': JSON.stringify({ plugins: { 'agent-view@dezan-mods': [{}] } }),
+      '/home/me/.claude/dev-mods/s1/rascunho/.claude-plugin/plugin.json': JSON.stringify({ name: 'rascunho', description: 'Em teste' }),
+      '/home/me/.claude/dev-mods/s1/parado/.claude-plugin/plugin.json': JSON.stringify({ name: 'parado', description: 'Nao carregado' }),
+    }
+    // The engine hands paths as the OS spells them: C:\home\me on Windows.
+    const norm = (path: string) => path.replaceAll('\\', '/').replace(/^[A-Za-z]:/, '')
+    on('fs.read', (_$, e) => {
+      const text = files[norm((e as { path: string }).path)]
+      if (text === undefined) return { deny: 'ENOENT' }
+      return { value: text }
+    })
+    const dir = (name: string) => ({ name, kind: 'dir' as const, size: 0, mtimeMs: 0, isLink: false })
+    on('fs.list', (_$, e) => {
+      const path = norm((e as { path: string }).path)
+      if (path === '/home/me/.claude/dev-mods') return { value: [dir('s1')] }
+      if (path === '/home/me/.claude/dev-mods/s1') return { value: [dir('rascunho'), dir('parado')] }
+      return { deny: 'ENOENT' }
+    })
+    on('command.list', () => ({
+      value: [
+        { name: 'agent-view', description: 'Abre o painel', source: 'plugin', plugin: 'agent-view' },
+        { name: 'rascunho', description: 'Testa', source: 'plugin', plugin: 'rascunho' },
+        { name: 'tools', description: 'menu', source: 'plugin', plugin: 'extra-mods' },
+      ],
+    }) as never)
+    const ran: string[] = []
+    on('command.run', { command: 'agent-view' }, async (_$, e) => (ran.push(e.command), { text: 'ok' }))
+
+    const menu = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', ...pane })
+    const corner = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', ...hint })
+    await corner.press({ key: 'tools-toggle' })
+    await menu.press({ key: 'mods-refresh' })
+
+    expect(await menu.find({ key: 'mod-agent-view' })).toBeDefined()
+    expect(await menu.find({ key: 'mod-rascunho' })).toBeDefined()
+    expect(await menu.find({ key: 'mod-outro-mod' })).toBeDefined()
+    expect(await menu.find({ key: 'mod-cmd-rascunho' })).toBeDefined()
+    // The menu itself and a mod in development that is not loaded stay out.
+    expect(await menu.find({ key: 'mod-extra-mods' })).toBeUndefined()
+    expect(await menu.find({ key: 'mod-parado' })).toBeUndefined()
+    expect(await menu.find({ text: /claude plugin install outro-mod@dezan-mods/ })).toBeDefined()
+
+    await menu.press({ key: 'mod-cmd-agent-view' })
+    expect(ran).toEqual(['agent-view'])
   })
 })

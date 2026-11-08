@@ -1,4 +1,4 @@
-export type Panel = 'main' | 'zen' | 'themes' | 'mode' | 'status'
+export type Panel = 'main' | 'mods' | 'zen' | 'themes' | 'mode' | 'status'
 
 export type ZenTheme = 'blue' | 'dark' | 'light' | 'green' | 'rainbow' | 'custom'
 
@@ -38,6 +38,17 @@ export type StatusSnapshot = {
   limits: RateLimit[]
 }
 
+// One of the person's own mods, as the Mods tab lists it: from their
+// marketplace (installed or not) or a mod in development loaded in this session.
+export type ModState = 'installed' | 'dev' | 'missing'
+
+export type ModEntry = {
+  name: string
+  description: string
+  state: ModState
+  commands: { name: string; description: string }[]
+}
+
 declare module 'claude-code' {
   interface PluginState {
     'extra-mods': {
@@ -67,6 +78,7 @@ declare module 'claude-code' {
       paneBg: string | null
       defaultModeChosen: boolean
       lang: Lang
+      myMods: ModEntry[] | null
     }
   }
 }

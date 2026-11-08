@@ -7,7 +7,7 @@
     {
       "name": "extra-mods",
       "source": "./plugins/extra-mods",
-      "description": "extra-mods menu: Zen mode, Claude Code themes, effort and mode controls, status line."
+      "description": "The mods menu: your own mods with their commands, Zen mode, Claude Code themes, effort and mode controls, status line."
     },
     {
       "name": "agent-view",

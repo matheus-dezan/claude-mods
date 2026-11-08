@@ -6,7 +6,11 @@
 
 <p align="center"><a href="README.md">English</a> · <b>Português</b></p>
 
-<p align="center"><a href="#zen">Zen</a> · <a href="#tema">Tema</a> · <a href="#modo">Modo</a> · <a href="#status">Status</a> · <a href="#instalação">Instalação</a></p>
+<p align="center"><a href="#mods">Mods</a> · <a href="#zen">Zen</a> · <a href="#tema">Tema</a> · <a href="#modo">Modo</a> · <a href="#status">Status</a> · <a href="#instalação">Instalação</a></p>
+
+## Mods
+
+O menu se chama **mods**. A primeira aba lista todos os seus mods: os do marketplace `dezan-mods` (instalados ou não) e os mods em desenvolvimento carregados na sessão. Cada um aparece com o estado (instalado, em desenvolvimento, não instalado), a descrição e um botão para cada comando dele, como **/agent-view**. Um mod não instalado mostra a linha para instalá-lo. Um mod novo publicado no marketplace aparece aí sozinho.
 
 ## Zen
 
@@ -67,7 +71,7 @@ claude plugin marketplace add matheus-dezan/claude-mods
 claude plugin install extra-mods@dezan-mods --scope user
 ```
 
-Rode `/reload-plugins` (ou abra uma nova sessão) e clique em **◆ extra-mods ▲** no canto inferior direito, ou digite `/tools`.
+Rode `/reload-plugins` (ou abra uma nova sessão) e clique em **◆ mods ▲** no canto inferior direito, ou digite `/mods` (ou `/tools`).
 
 Para atualizar: `claude plugin marketplace update dezan-mods && claude plugin update extra-mods@dezan-mods`
 

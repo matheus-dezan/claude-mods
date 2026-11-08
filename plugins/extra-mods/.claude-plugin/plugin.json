@@ -1,7 +1,7 @@
 {
   "name": "extra-mods",
-  "version": "0.7.1",
-  "description": "An extra-mods menu in the bottom corner: Zen mode with a progress band, Claude Code themes from terminalcolors.com, model, effort and permission mode controls and a status line.",
+  "version": "0.8.0",
+  "description": "A mods menu in the bottom corner: your own mods with their commands, Zen mode with a progress band, Claude Code themes from terminalcolors.com, model, effort and permission mode controls and a status line.",
   "author": {
     "name": "Jhonatan de Souza"
   },
